@@ -5,7 +5,7 @@ import numpy as np
 
 def menu():
     print("---- Menu ----")
-    print("1. Mở lần lượt hình ảnh trong một thư mục, đánh dấu vùng kích thước cố định và so sánh với ảnh mẫu")
+    print("1. Mở lần lượt hình ảnh trong một thư mục, đánh dấu nhiều vùng và so sánh với ảnh mẫu")
     print("2. Tùy chọn 2")
     print("3. Tùy chọn 3")
     print("4. Thoát")
@@ -18,25 +18,35 @@ def mse(imageA, imageB):
 
 def option_1():
     folder_path = input("Nhập đường dẫn thư mục chứa hình ảnh: ")
-    sample_image_path = input("Nhập đường dẫn ảnh mẫu: ")
 
-    if not os.path.exists(folder_path):
-        print("Thư mục không tồn tại!")
-        return
+    # Nhập số lượng vùng cần đánh dấu
+    num_regions = int(input("Nhập số lượng vùng cần đánh dấu: "))
 
-    if not os.path.exists(sample_image_path):
-        print("Ảnh mẫu không tồn tại!")
-        return
+    # Danh sách các tọa độ và kích thước cho các vùng
+    regions = []
+    sample_images = []
 
-    # Yêu cầu người dùng nhập tọa độ bắt đầu và kích thước vùng
-    x = int(input("Nhập tọa độ X của góc trên bên trái vùng đánh dấu: "))
-    y = int(input("Nhập tọa độ Y của góc trên bên trái vùng đánh dấu: "))
-    width = int(input("Nhập chiều rộng của vùng đánh dấu: "))
-    height = int(input("Nhập chiều cao của vùng đánh dấu: "))
+    for i in range(num_regions):
+        print(f"Nhập thông tin cho vùng {i+1}:")
+        x = int(input("Nhập tọa độ X của góc trên bên trái vùng: "))
+        y = int(input("Nhập tọa độ Y của góc trên bên trái vùng: "))
+        width = int(input("Nhập chiều rộng của vùng: "))
+        height = int(input("Nhập chiều cao của vùng: "))
+        
+        # Nhập ảnh mẫu cho vùng này
+        sample_image_path = input(f"Nhập đường dẫn ảnh mẫu cho vùng {i+1}: ")
 
-    # Tải ảnh mẫu và thay đổi kích thước ảnh mẫu để khớp với vùng được đánh dấu
-    sample_image = cv2.imread(sample_image_path)
-    sample_image_resized = cv2.resize(sample_image, (width, height))
+        if not os.path.exists(sample_image_path):
+            print("Ảnh mẫu không tồn tại!")
+            return
+        
+        # Tải ảnh mẫu và thay đổi kích thước ảnh mẫu để khớp với vùng được đánh dấu
+        sample_image = cv2.imread(sample_image_path)
+        sample_image_resized = cv2.resize(sample_image, (width, height))
+
+        # Lưu tọa độ, kích thước vùng và ảnh mẫu vào danh sách
+        regions.append((x, y, width, height))
+        sample_images.append(sample_image_resized)
 
     # Khởi tạo danh sách các tệp đã mở
     displayed_images = set()
@@ -55,24 +65,26 @@ def option_1():
                 # Sử dụng OpenCV để mở hình ảnh
                 img = cv2.imread(image_path)
 
-                # Cắt phần được đánh dấu từ hình ảnh
-                cropped_image = img[y:y + height, x:x + width]
+                # So sánh từng vùng đã đánh dấu với ảnh mẫu tương ứng
+                for i, (x, y, width, height) in enumerate(regions):
+                    # Cắt phần được đánh dấu từ hình ảnh
+                    cropped_image = img[y:y + height, x:x + width]
 
-                # Vẽ một hình chữ nhật với kích thước xác định để đánh dấu vùng đã cắt
-                cv2.rectangle(img, (x, y), (x + width, y + height), (0, 255, 0), 2)  # Màu xanh lá, độ dày 2
+                    # Vẽ một hình chữ nhật với kích thước xác định để đánh dấu vùng đã cắt
+                    cv2.rectangle(img, (x, y), (x + width, y + height), (0, 255, 0), 2)  # Màu xanh lá, độ dày 2
 
-                # So sánh phần được cắt với ảnh mẫu
-                error = mse(cropped_image, sample_image_resized)
+                    # So sánh phần được cắt với ảnh mẫu
+                    error = mse(cropped_image, sample_images[i])
 
-                # Hiển thị kết quả so sánh
-                print(f"Đang so sánh {image_file} với ảnh mẫu, MSE: {error}")
+                    # Hiển thị kết quả so sánh
+                    print(f"Đang so sánh vùng {i+1} của {image_file} với ảnh mẫu {i+1}, MSE: {error}")
 
-                if error < 1000:  # Ngưỡng MSE để đánh giá mức độ tương đồng
-                    print(f"Hình ảnh {image_file} tương tự với ảnh mẫu.")
-                else:
-                    print(f"Hình ảnh {image_file} KHÔNG tương tự với ảnh mẫu.")
+                    if error < 1000:  # Ngưỡng MSE để đánh giá mức độ tương đồng
+                        print(f"Vùng {i+1} của hình ảnh {image_file} tương tự với ảnh mẫu.")
+                    else:
+                        print(f"Vùng {i+1} của hình ảnh {image_file} KHÔNG tương tự với ảnh mẫu.")
 
-                # Hiển thị hình ảnh gốc với vùng đánh dấu
+                # Hiển thị hình ảnh gốc với các vùng đánh dấu
                 cv2.imshow('Image Viewer', img)
 
                 # Thêm tệp vào danh sách các tệp đã hiển thị
