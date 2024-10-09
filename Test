@@ -1,19 +1,31 @@
 import os
 import time
 import cv2
+import numpy as np
 
 def menu():
     print("---- Menu ----")
-    print("1. Mở lần lượt hình ảnh trong một thư mục, đánh dấu vùng kích thước cố định")
+    print("1. Mở lần lượt hình ảnh trong một thư mục, đánh dấu vùng kích thước cố định và so sánh với ảnh mẫu")
     print("2. Tùy chọn 2")
     print("3. Tùy chọn 3")
     print("4. Thoát")
 
+def mse(imageA, imageB):
+    # Tính Mean Squared Error (MSE) giữa hai hình ảnh
+    err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
+    err /= float(imageA.shape[0] * imageA.shape[1])
+    return err
+
 def option_1():
     folder_path = input("Nhập đường dẫn thư mục chứa hình ảnh: ")
+    sample_image_path = input("Nhập đường dẫn ảnh mẫu: ")
 
     if not os.path.exists(folder_path):
         print("Thư mục không tồn tại!")
+        return
+
+    if not os.path.exists(sample_image_path):
+        print("Ảnh mẫu không tồn tại!")
         return
 
     # Yêu cầu người dùng nhập tọa độ bắt đầu và kích thước vùng
@@ -21,6 +33,10 @@ def option_1():
     y = int(input("Nhập tọa độ Y của góc trên bên trái vùng đánh dấu: "))
     width = int(input("Nhập chiều rộng của vùng đánh dấu: "))
     height = int(input("Nhập chiều cao của vùng đánh dấu: "))
+
+    # Tải ảnh mẫu và thay đổi kích thước ảnh mẫu để khớp với vùng được đánh dấu
+    sample_image = cv2.imread(sample_image_path)
+    sample_image_resized = cv2.resize(sample_image, (width, height))
 
     # Khởi tạo danh sách các tệp đã mở
     displayed_images = set()
@@ -38,12 +54,27 @@ def option_1():
                 
                 # Sử dụng OpenCV để mở hình ảnh
                 img = cv2.imread(image_path)
-                
-                # Vẽ một hình chữ nhật với kích thước xác định
+
+                # Cắt phần được đánh dấu từ hình ảnh
+                cropped_image = img[y:y + height, x:x + width]
+
+                # Vẽ một hình chữ nhật với kích thước xác định để đánh dấu vùng đã cắt
                 cv2.rectangle(img, (x, y), (x + width, y + height), (0, 255, 0), 2)  # Màu xanh lá, độ dày 2
 
-                cv2.imshow('Image Viewer', img)  # Hiển thị hình ảnh trong cửa sổ 'Image Viewer'
-                
+                # So sánh phần được cắt với ảnh mẫu
+                error = mse(cropped_image, sample_image_resized)
+
+                # Hiển thị kết quả so sánh
+                print(f"Đang so sánh {image_file} với ảnh mẫu, MSE: {error}")
+
+                if error < 1000:  # Ngưỡng MSE để đánh giá mức độ tương đồng
+                    print(f"Hình ảnh {image_file} tương tự với ảnh mẫu.")
+                else:
+                    print(f"Hình ảnh {image_file} KHÔNG tương tự với ảnh mẫu.")
+
+                # Hiển thị hình ảnh gốc với vùng đánh dấu
+                cv2.imshow('Image Viewer', img)
+
                 # Thêm tệp vào danh sách các tệp đã hiển thị
                 displayed_images.add(image_file)
 
