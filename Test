@@ -43,3 +43,100 @@ def option_1():
         
         # Nhập ảnh mẫu cho vùng này
         sample_image_path = os.getenv(f"SAMPLE_IMAGE{i}_PATH")
+
+        if not os.path.exists(sample_image_path):
+            print(f"Ảnh mẫu {i} không tồn tại!")
+            return
+        
+        # Tải ảnh mẫu và thay đổi kích thước ảnh mẫu để khớp với vùng được đánh dấu
+        sample_image = cv2.imread(sample_image_path)
+        sample_image_resized = cv2.resize(sample_image, (width, height))
+
+        # Lưu tọa độ, kích thước vùng và ảnh mẫu vào danh sách
+        regions.append((x, y, width, height))
+        sample_images.append(sample_image_resized)
+
+    # Khởi tạo danh sách các tệp đã mở
+    displayed_images = set()
+
+    while True:
+        # Lấy danh sách tất cả các tệp trong thư mục
+        image_files = [f for f in os.listdir(folder_path) if f.endswith(('.png', '.jpg', '.jpeg'))]
+        
+        # Lọc ra những tệp chưa được hiển thị
+        new_images = [f for f in image_files if f not in displayed_images]
+
+        if new_images:
+            for image_file in new_images:
+                image_path = os.path.join(folder_path, image_file)
+                
+                # Sử dụng OpenCV để mở hình ảnh
+                img = cv2.imread(image_path)
+
+                # So sánh từng vùng đã đánh dấu với ảnh mẫu tương ứng
+                for i, (x, y, width, height) in enumerate(regions):
+                    # Cắt phần được đánh dấu từ hình ảnh
+                    cropped_image = img[y:y + height, x:x + width]
+
+                    # Vẽ một hình chữ nhật với kích thước xác định để đánh dấu vùng đã cắt
+                    cv2.rectangle(img, (x, y), (x + width, y + height), (0, 255, 0), 2)  # Màu xanh lá, độ dày 2
+
+                    # So sánh phần được cắt với ảnh mẫu
+                    error = mse(cropped_image, sample_images[i])
+
+                    # Hiển thị kết quả so sánh
+                    print(f"Đang so sánh vùng {i+1} của {image_file} với ảnh mẫu {i+1}, MSE: {error}")
+
+                    if error < 1000:  # Ngưỡng MSE để đánh giá mức độ tương đồng
+                        print(f"Vùng {i+1} của hình ảnh {image_file} tương tự với ảnh mẫu.")
+                    else:
+                        print(f"Vùng {i+1} của hình ảnh {image_file} KHÔNG tương tự với ảnh mẫu.")
+
+                # Hiển thị hình ảnh gốc với các vùng đánh dấu
+                cv2.imshow('Image Viewer', img)
+
+                # Thêm tệp vào danh sách các tệp đã hiển thị
+                displayed_images.add(image_file)
+
+                # Đợi 3 giây
+                cv2.waitKey(3000)  # Đợi trong 3000 ms (3 giây)
+
+        else:
+            print("Không có hình ảnh mới. Đang tiếp tục theo dõi...")
+
+        # Đợi 5 giây trước khi kiểm tra thư mục lại để tìm hình ảnh mới
+        time.sleep(5)
+
+        # Nếu bạn muốn cho phép người dùng thoát bằng cách nhấn phím
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            print("Thoát chương trình theo yêu cầu của người dùng.")
+            break
+
+    # Đóng tất cả các cửa sổ khi kết thúc
+    cv2.destroyAllWindows()
+
+def option_2():
+    print("Bạn đã chọn Tùy chọn 2")
+
+def option_3():
+    print("Bạn đã chọn Tùy chọn 3")
+
+def main():
+    while True:
+        menu()
+        choice = input("Chọn một tùy chọn: ")
+
+        if choice == "1":
+            option_1()
+        elif choice == "2":
+            option_2()
+        elif choice == "3":
+            option_3()
+        elif choice == "4":
+            print("Thoát chương trình")
+            break
+        else:
+            print("Lựa chọn không hợp lệ. Vui lòng chọn lại.")
+
+if __name__ == "__main__":
+    main()
