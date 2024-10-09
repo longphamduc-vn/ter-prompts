@@ -32,13 +32,18 @@ def option_1():
                 
                 # Sử dụng OpenCV để mở hình ảnh
                 img = cv2.imread(image_path)
-                cv2.imshow('Image Viewer', img)  # Hiển thị hình ảnh trong cửa sổ 'Image Viewer'
-                
+
+                # Hiển thị tên file ảnh lên trên hình ảnh
+                cv2.imshow(f'Đang hiển thị: {image_file}', img)  # Hiển thị tên file trong tiêu đề cửa sổ
+
                 # Thêm tệp vào danh sách các tệp đã hiển thị
                 displayed_images.add(image_file)
 
                 # Đợi 3 giây
                 cv2.waitKey(3000)  # Đợi trong 3000 ms (3 giây)
+
+                # Đóng cửa sổ sau mỗi lần hiển thị để chuẩn bị cho hình tiếp theo
+                cv2.destroyWindow(f'Đang hiển thị: {image_file}')
 
         else:
             print("Không có hình ảnh mới. Đang tiếp tục theo dõi...")
